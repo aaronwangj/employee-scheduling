@@ -19,4 +19,5 @@ export ILOG_LICENSE_FILE=/local/projects/cplex/ilm/current/linux/access.site.ilm
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/local/projects/cplex/CPLEX_Studio_Academic/12.3/x86_64/cpoptimizer/bin/x86-64_sles10_4.1:/local/projects/cplex/CPLEX_Studio_Academic/12.3/x86_64/cplex/bin/x86-64_sles10_4.1
 
 # add the solver jar to the classpath and run
-java -cp /local/projects/cplex/CPLEX_Studio_Academic/12.3/x86_64/cpoptimizer/lib/ILOG.CP.jar:src solver.cp.Main $input
+python3 src/sat_solver.py $input
+# java -cp /local/projects/cplex/CPLEX_Studio_Academic/12.3/x86_64/cpoptimizer/lib/ILOG.CP.jar:src solver.cp.Main $input
