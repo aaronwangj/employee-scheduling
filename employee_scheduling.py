@@ -2,10 +2,19 @@ from multiprocessing import Process, Value, Array, Manager
 from numpy.random import choice
 import sys, random, time, json, os
 
+# CP model
+from docplex.cp.model import CpoModel
+
+# LP/IP models
+from docplex.mp.model import Model
 
 class Solver:
   def __init__(self, filename):
-      pass
+      cp = CpoModel()
+      cp.solve(execfile='/Applications/CPLEX_Studio201/cpoptimizer/bin/x86-64_osx/cpoptimizer')
+
+  def solve(self):
+    print("hello!")
 
 def main():
   args = sys.argv

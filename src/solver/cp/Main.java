@@ -20,6 +20,8 @@ public class Main
 		System.out.println("Usage: java Main <file>");
 		return;
 	}
+
+	IloCP cp = new IloCP();
 		
    	String input = args[0];
 	Path path = Paths.get(input);
