@@ -44,7 +44,7 @@ do
 	else 																					# Run failed, record the instanceName with no solution
 		echo Error
 		instance=$(basename "$f")		
-		echo "{\"Instance\": \"$instance\", \"Time\": \"--\", \"Result\": \"--\"}" >> $logFile
+		echo "{\"Instance\": \"$instanceName\", \"Time\": \"--\", \"Result\": \"--\"}" >> $logFile
 	fi
 	rm -f output.tmp
 done
