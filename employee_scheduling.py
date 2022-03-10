@@ -92,10 +92,6 @@ class Solver:
 
         # post-lecture...end
 
-
-
-
-
         # print(sched)
         self.results['Instance'] = self.filename
         self.results['Time'] = '1.23'
