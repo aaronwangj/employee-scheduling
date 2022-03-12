@@ -111,13 +111,13 @@ public class CPInstance
     try
     {
       cp = new IloCP();
-      IloIntExpr zero = cp.intVar(0, 1);
-      IloIntExpr one = cp.intVar(1, 2);
-      IloIntExpr two = cp.intVar(2, 3);
-      IloIntExpr three = cp.intVar(3, 4);
-      IloIntExpr twenty = cp.intVar(20, 21);
-      IloIntExpr forty = cp.intVar(40, 41);
-      IloIntExpr four = cp.intVar(4, 5);
+      IloIntExpr zero = cp.intVar(0, 0);
+      IloIntExpr one = cp.intVar(1, 1);
+      IloIntExpr two = cp.intVar(2, 2);
+      IloIntExpr three = cp.intVar(3, 3);
+      IloIntExpr twenty = cp.intVar(20, 20);
+      IloIntExpr forty = cp.intVar(40, 40);
+      IloIntExpr four = cp.intVar(4, 4);
 
 
       // TODO: Employee Scheduling Model Goes Here
@@ -147,13 +147,13 @@ public class CPInstance
         shiftSchedule.add(new IloIntExpr[this.numDays]);
         IloIntExpr[] x = shiftSchedule.get(i);
         for (int j = 0; j < this.numDays; j++) {
-          x[j] = cp.intVar(0, this.numShifts);
+          x[j] = cp.intVar(0, 3);
         }
 
         durationSchedule.add(new IloIntExpr[this.numDays]);
         IloIntExpr[] y = durationSchedule.get(i);
         for (int j = 0; j < this.numDays; j++) {
-          y[j] = cp.intVar(0, this.maxDailyWork + 1);
+          y[j] = cp.intVar(0, 8);
         }
       }
 
@@ -171,7 +171,7 @@ public class CPInstance
             allShifts[k] = empSched[i];
           }
 
-          IloIntExpr lol = cp.intVar(0, 1);
+          IloIntExpr lol = cp.intVar(0, 0);
 
 
           cp.add(cp.ge(lol, cp.diff(minDemand, cp.count(allShifts, j))));
@@ -184,7 +184,7 @@ public class CPInstance
       minDailyOperation
       */
       for (int i = 0; i < this.numDays; i ++) {
-        IloIntExpr mdo = cp.intVar(this.minDailyOperation, this.minDailyOperation+1);
+        IloIntExpr mdo = cp.intVar(this.minDailyOperation, this.minDailyOperation);
         IloIntExpr[] allDurations = new IloIntExpr[this.numEmployees];
         for (int k = 0; k < this.numEmployees; k++) {
           IloIntExpr[] empSched = durationSchedule.get(k);
@@ -220,11 +220,10 @@ public class CPInstance
 
       /*
       duration >= 4, <=8
-      */
-
+      // */
       for (int i = 0; i < this.numEmployees; i ++) {
         for (int j = 0; j < this.numDays; j ++) {
-          cp.add(cp.ge(durationSchedule.get(i)[j], four));
+          // cp.add(cp.ge(durationSchedule.get(i)[j], four));
 
           /*
             if duration is not zero, shift is not zero
@@ -232,6 +231,8 @@ public class CPInstance
           */
           cp.add(cp.ifThen(cp.neq(durationSchedule.get(i)[j], zero), cp.neq(shiftSchedule.get(i)[j], zero)));
           cp.add(cp.ifThen(cp.neq(shiftSchedule.get(i)[j], zero), cp.neq(durationSchedule.get(i)[j], zero)));
+
+          cp.add(cp.ifThen(cp.neq(shiftSchedule.get(i)[j], zero), cp.ge(durationSchedule.get(i)[j], four)));
         }
       }
 
