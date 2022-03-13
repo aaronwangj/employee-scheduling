@@ -28,7 +28,7 @@ public class CPInstance
   int maxWeeklyWork;
   int maxConsecutiveNightShift;
   int maxTotalNightShift;
-
+  StringBuilder stb;
   // ILOG CP Solver
   IloCP cp;
 
@@ -37,6 +37,7 @@ public class CPInstance
     try
     {
       Scanner read = new Scanner(new File(fileName));
+      this.stb = new StringBuilder();
 
       while (read.hasNextLine())
       {
@@ -115,9 +116,10 @@ public class CPInstance
       IloIntExpr one = cp.intVar(1, 1);
       IloIntExpr two = cp.intVar(2, 2);
       IloIntExpr three = cp.intVar(3, 3);
+      IloIntExpr four = cp.intVar(4, 4);
       IloIntExpr twenty = cp.intVar(20, 20);
       IloIntExpr forty = cp.intVar(40, 40);
-      IloIntExpr four = cp.intVar(4, 4);
+      IloIntExpr mdo = cp.intVar(this.minDailyOperation, this.minDailyOperation);
 
 
       // TODO: Employee Scheduling Model Goes Here
@@ -128,7 +130,7 @@ public class CPInstance
       // cp.setParameter(IloCP.IntParam.SearchType, IloCP.ParameterValues.DepthFirst);
 
       // Uncomment this: to set the solver output level if you wish
-      // cp.setParameter(IloCP.IntParam.LogVerbosity, IloCP.ParameterValues.Quiet);
+      cp.setParameter(IloCP.IntParam.LogVerbosity, IloCP.ParameterValues.Quiet);
 
       /*
       shiftSchedule: num employees x numdays (arraylist[IloNumVar[]])
@@ -170,11 +172,7 @@ public class CPInstance
             IloIntExpr[] empSched = shiftSchedule.get(k);
             allShifts[k] = empSched[i];
           }
-
-          IloIntExpr lol = cp.intVar(0, 0);
-
-
-          cp.add(cp.ge(lol, cp.diff(minDemand, cp.count(allShifts, j))));
+          cp.add(cp.ge(zero, cp.diff(minDemand, cp.count(allShifts, j))));
 
         }
       }
@@ -184,7 +182,7 @@ public class CPInstance
       minDailyOperation
       */
       for (int i = 0; i < this.numDays; i ++) {
-        IloIntExpr mdo = cp.intVar(this.minDailyOperation, this.minDailyOperation);
+
         IloIntExpr[] allDurations = new IloIntExpr[this.numEmployees];
         for (int k = 0; k < this.numEmployees; k++) {
           IloIntExpr[] empSched = durationSchedule.get(k);
@@ -196,10 +194,11 @@ public class CPInstance
       }
 
 
-      /*
-      first four days
-      */
-      for (int i = 0; i < this.numEmployees; i++) {
+      for (int i = 0; i < this.numEmployees; i ++) {
+        IloIntExpr[] allShifts = new IloIntExpr[this.numDays];
+        /*
+        first four days
+        */
         if (this.numDays >= 4) {
           IloIntExpr[] shifts = new IloIntExpr[4];
           shifts[0] = shiftSchedule.get(i)[0];
@@ -215,15 +214,7 @@ public class CPInstance
           }
           cp.add(cp.allDiff(shifts));
         }
-      }
-
-
-      /*
-      duration >= 4, <=8
-      // */
-      for (int i = 0; i < this.numEmployees; i ++) {
         for (int j = 0; j < this.numDays; j ++) {
-          // cp.add(cp.ge(durationSchedule.get(i)[j], four));
 
           /*
             if duration is not zero, shift is not zero
@@ -232,18 +223,16 @@ public class CPInstance
           cp.add(cp.ifThen(cp.neq(durationSchedule.get(i)[j], zero), cp.neq(shiftSchedule.get(i)[j], zero)));
           cp.add(cp.ifThen(cp.neq(shiftSchedule.get(i)[j], zero), cp.neq(durationSchedule.get(i)[j], zero)));
 
+          /*
+          duration >= 4, <=8
+          */
           cp.add(cp.ifThen(cp.neq(shiftSchedule.get(i)[j], zero), cp.ge(durationSchedule.get(i)[j], four)));
-        }
-      }
 
 
-
-      /*
-      min/max weekly duration
-      */
-      for (int i = 0; i < this.numEmployees; i ++) {
-
-        for (int j = 0; j < this.numDays; j = j + 7) {
+          /*
+          min/max weekly duration
+          */
+          if ((j == 0) || (j%7 == 0)){
           IloIntExpr[] allHours = new IloIntExpr[7];
           allHours[0] = durationSchedule.get(i)[j];
           allHours[1] = durationSchedule.get(i)[j+1];
@@ -256,65 +245,91 @@ public class CPInstance
           cp.add(cp.ge(cp.sum(allHours), twenty));
           cp.add(cp.le(cp.sum(allHours), forty));
         }
-      }
-
-
-
-      for (int i = 0; i < this.numEmployees; i ++) {
-        IloIntExpr[] allShifts = new IloIntExpr[this.numDays];
-
-        for (int j = 0; j < this.numDays; j++) {
-          allShifts[j] = shiftSchedule.get(i)[j];
-        }
-        /*
-        num night shifts doesn't exceed maxTotalNightShift
-        */
-        cp.add(cp.ge(this.maxTotalNightShift, cp.count(allShifts, 1)));
-
-        /*
-        no consecutive night shifts
-        */
-        for (int j = 1; j < this.numDays; j ++) {
-          cp.add(cp.ifThen(cp.eq(allShifts[j-1], one), cp.neq(allShifts[j], one)));
+        allShifts[j] = shiftSchedule.get(i)[j];
+        if (j > 0){
           cp.add(cp.ifThen(cp.eq(allShifts[j], one), cp.neq(allShifts[j-1], one)));
         }
+        }
+        cp.add(cp.ge(this.maxTotalNightShift, cp.count(allShifts, 1)));
       }
 
-
       if(cp.solve()) {
-        cp.printInformation();
+        // cp.printInformation();
 
         // Uncomment this: for poor man's Gantt Chart to display schedules
 
-        int[][] beginED = new int[this.numEmployees][this.numDays];
-        int[][] endED = new int[this.numEmployees][this.numDays];
+        // int[][] beginED = new int[this.numEmployees][this.numDays];
+        // int[][] endED = new int[this.numEmployees][this.numDays];
+        //
+        // for (int i = 0; i < this.numEmployees; i ++) {
+        //   IloIntExpr[] empShifts = shiftSchedule.get(i);
+        //   IloIntExpr[] empDurations = durationSchedule.get(i);
+        //   for (int j = 0; j < this.numDays; j ++) {
+        //     if ((int)cp.getValue(empShifts[j]) == 0) {
+        //       beginED[i][j] = -1;
+        //       endED[i][j] = -1;
+        //     } else if ((int)cp.getValue(empShifts[j]) == 1) {
+        //       beginED[i][j] = 0;
+        //       endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
+        //
+        //     } else if ((int)cp.getValue(empShifts[j]) == 2) {
+        //       beginED[i][j] = 8;
+        //       endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
+        //
+        //     } else if ((int)cp.getValue(empShifts[j]) == 3) {
+        //       beginED[i][j] = 16;
+        //       endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
+        //     } else {
+        //       System.out.println("uh oh, we somehow got a shift over 3:" + (int)cp.getValue(empShifts[j]));
+        //     }
+        //
+        //     if ((i == this.numEmployees - 1) && (j == this.numDays-1)){
+        //       this.solutionString = this.solutionString + beginED[i][j] + " " + endED[i][j];
+        //     } else {
+        //       this.solutionString = this.solutionString + beginED[i][j] + " " + endED[i][j] + " ";
+        //     }
+        //   }
+        // }
+        // prettyPrint(numEmployees, numDays, beginED, endED);
 
+
+/*
+UNCOMMENT FOR AUTOGRADER (results.log cannot have solutions)
+*/
         for (int i = 0; i < this.numEmployees; i ++) {
           IloIntExpr[] empShifts = shiftSchedule.get(i);
           IloIntExpr[] empDurations = durationSchedule.get(i);
           for (int j = 0; j < this.numDays; j ++) {
             if ((int)cp.getValue(empShifts[j]) == 0) {
-              beginED[i][j] = -1;
-              endED[i][j] = -1;
+              if ((i == this.numEmployees - 1) && (j == this.numDays-1)){
+                stb.append("-1 -1");
+              } else {
+                stb.append("-1 -1 ");
+              }
             } else if ((int)cp.getValue(empShifts[j]) == 1) {
-              beginED[i][j] = 0;
-              endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
+              if ((i == this.numEmployees - 1) && (j == this.numDays-1)){
+                stb.append("0 " + Integer.toString((int)cp.getValue(empDurations[j])));
+              } else {
+                stb.append("0 " + Integer.toString((int)cp.getValue(empDurations[j])) + " ");
+              }
 
             } else if ((int)cp.getValue(empShifts[j]) == 2) {
-              beginED[i][j] = 8;
-              endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
-
+              if ((i == this.numEmployees - 1) && (j == this.numDays-1)){
+                stb.append("8 " + Integer.toString(8 + (int)cp.getValue(empDurations[j])));
+              } else {
+                stb.append("8 " + Integer.toString(8 + (int)cp.getValue(empDurations[j])) + " ");
+              }
             } else if ((int)cp.getValue(empShifts[j]) == 3) {
-              beginED[i][j] = 16;
-              endED[i][j] = beginED[i][j] + (int)cp.getValue(empDurations[j]);
+              if ((i == this.numEmployees - 1) && (j == this.numDays-1)){
+                stb.append("16 " + Integer.toString(16 + (int)cp.getValue(empDurations[j])));
+              } else {
+                stb.append("16 " + Integer.toString(16 + (int)cp.getValue(empDurations[j])) + " ");
+              }
             } else {
               System.out.println("uh oh, we somehow got a shift over 3:" + (int)cp.getValue(empShifts[j]));
             }
           }
         }
-
-
-        prettyPrint(numEmployees, numDays, beginED, endED);
       }
       else
       {
